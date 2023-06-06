@@ -1,0 +1,5 @@
+__pycache__
+venv
+.vscode
+credits.csv
+movies_dataset.csv
