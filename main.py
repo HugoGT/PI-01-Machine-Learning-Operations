@@ -4,10 +4,14 @@ import pandas as pd
 from fastapi import FastAPI
 
 
-# Cargar el dataset de películas como un dataframe de pandas
+# Cargamos el dataset de películas como un dataframe de pandas
 movies = pd.read_csv("movies.csv", index_col='id')
 
-# Cargar los datasets como diccionarios para un fácil acceso
+# Convertimos estas columnas en listas para practicidad
+movies[['genres_id', 'actors_id', 'directors_id']] = movies[[
+    'genres_id', 'actors_id', 'directors_id']].apply(lambda x: x.apply(eval))
+
+# Cargamos los datasets como diccionarios para un fácil acceso
 genres = pd.read_csv("genres.csv", index_col='id').to_dict(
     orient='dict')['genre']
 actors = pd.read_csv("actors.csv", index_col='id').to_dict(
@@ -15,7 +19,7 @@ actors = pd.read_csv("actors.csv", index_col='id').to_dict(
 directors = pd.read_csv("directors.csv", index_col='id').to_dict(
     orient='dict')['director']
 
-# Se crea el diccionario de meses para la ruta get months
+# Creamos el diccionario de meses para la ruta get months
 months = {
     1: 'enero',
     2: 'febrero',
@@ -74,6 +78,45 @@ def films_per_day(day: str):
     amount = len(movies[movies['release_day'] == day])
 
     if amount == 0:
-        return {"message": f"El día {day} no existe, revise el dato enviado"}
+        return {"message": f"El día {day} no existe, revise el dato enviado."}
 
-    return {"message": f"{amount} películas fueron estrenadas el día {day}"}
+    return {"message": f"{amount} películas fueron estrenadas el día {day}."}
+
+
+# Función para obtener el score de una filmación por su título
+@app.get("/{movie}/{info}")
+def title_score(movie: str, info: str):
+    # Lógica para obtener el título, año de estreno y score de la filmación
+    movie = movie.lower()
+    info = info.lower()
+
+    if info not in ['score', 'votos']:
+        return {"message": f'Se puede solicitar solamente el score y los votos'}
+
+    # Filtrar el DataFrame por título de la película
+    filtered_movies = movies[movies['title'].str.lower() == movie]
+
+    if filtered_movies.empty:
+        return {"message": f"No se encontró la película {movie}."}
+
+    # Obtener los datos del DataFrame filtrado
+    else:
+        title = filtered_movies['title'].iloc[0]
+        year = filtered_movies['release_year'].iloc[0]
+        popularity = filtered_movies['popularity'].iloc[0]
+        vote_count = filtered_movies['vote_count'].iloc[0]
+        vote_average = filtered_movies['vote_average'].iloc[0]
+
+        if info == 'score':
+            return {
+                "message": f"La película {title} fue estrenada en el año {year}. La misma cuenta con una popularidad de {popularity}."
+            }
+        elif info == 'votos':
+            if vote_count < 2000:
+                return {
+                    "message": f"La película {title} fue estrenada en el año {year}, pero no cuenta con las suficientes valoraciones para poder dar un promedio."
+                }
+            else:
+                return {
+                    "message": f"La película {title} fue estrenada en el año {year}. La misma cuenta con {vote_count} votos que dan un promedio de {vote_average} de 10."
+                }
