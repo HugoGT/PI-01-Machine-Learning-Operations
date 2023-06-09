@@ -1,21 +1,52 @@
 # API
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 
 from data import months, movies, actors, directors, genres
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Movies API",
+    description="Esta API fue creada con la intención entregar datos acerca de películas.",
+    openapi_tags=[
+        {
+            "name": "Películas",
+            "description": "movies routes"
+        }
+    ],
+    version="1.0.0"
+)
 
 
 # Cuando entren a la API, podrán ver como usar la misma
-@app.get("/")
-def home():
-    return {"message": "Bienvenidos a la API de Películas"}
+@app.get(
+    "/",
+    name="Info de la API",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
+def info():
+    return {
+        "info": "Bienvenidos a mi API de Películas",
+        "funciones": [
+            "cantidad_filmaciones_mes/(ingrese un mes)",
+            "cantidad_filmaciones_dia/(ingrese un dia)",
+            "score_titulo/(ingrese una película)",
+            "votos_titulo/(ingrese una película)",
+            "get_actor/(ingrese un actor)",
+            "get_director/(ingrese un director)",
+            "recomendacion/(ingrese una película)"
+        ]
+    }
 
 
 # Función para obtener la cantidad de filmaciones en un mes específico
-@app.get("/cantidad_filmaciones_mes/{month}")
+@app.get(
+    "/cantidad_filmaciones_mes/{month}",
+    name="Obtener la cantidad de filmaciones por mes",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def films_per_month(month: str):
     """Se ingresa el mes y la función retorna la cantidad de películas que se etranaron ese mes históricamente"""
 
@@ -34,7 +65,12 @@ def films_per_month(month: str):
 
 
 # Función para obtener la cantidad de filmaciones en un día específico
-@app.get("/cantidad_filmaciones_dia/{day}")
+@app.get(
+    "/cantidad_filmaciones_dia/{day}",
+    name="Obtener la cantidad de filmaciones por día",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def films_per_day(day: str):
     """Se ingresa el dia y la funcion retorna la cantidad de peliculas que se estrebaron ese dia historicamente."""
 
@@ -50,7 +86,12 @@ def films_per_day(day: str):
 
 
 # Función para obtener el score de una filmación por su título
-@app.get("/score_titulo/{movie}")
+@app.get(
+    "/score_titulo/{movie}",
+    name="Obtener el score de una película",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def title_score(movie: str):
     """Se ingresa el título de una filmación esperando como respuesta el título, el año de estreno y el score."""
 
@@ -61,9 +102,9 @@ def title_score(movie: str):
 
     if filtered_movies.empty:
         return {
-            'titulo': f'No se encontró {movie}',
-            'anio': None,
-            'popularidad': None
+            "titulo": f"No se encontró {movie}",
+            "anio": None,
+            "popularidad": None
         }
 
     # Obtener los datos del DataFrame filtrado
@@ -72,14 +113,19 @@ def title_score(movie: str):
         popularity = filtered_movies["popularity"].iloc[0].item()
 
         return {
-            'titulo': movie.title(),
-            'anio': year,
-            'popularidad': popularity
+            "titulo": movie.title(),
+            "anio": year,
+            "popularidad": popularity
         }
 
 
 # Función para obtener los votos de una filmación por su título
-@app.get("/votos_titulo/{movie}")
+@app.get(
+    "/votos_titulo/{movie}",
+    name="Obtener votos de una película",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def title_votes(movie: str):
     """Se ingresa el título de una filmación esperando como respuesta el título, la cantidad de votos y el valor promedio de las votaciones."""
 
@@ -90,10 +136,10 @@ def title_votes(movie: str):
 
     if filtered_movies.empty:
         return {
-            'titulo': f'No se encontró {movie}',
-            'anio': None,
-            'voto_total': None,
-            'voto_promedio': None
+            "titulo": f"No se encontró {movie}",
+            "anio": None,
+            "voto_total": None,
+            "voto_promedio": None
         }
 
     else:
@@ -103,22 +149,27 @@ def title_votes(movie: str):
 
         if vote_count < 2000:
             return {
-                'titulo': movie.title(),
-                'anio': year,
-                'voto_total': vote_count,
-                'voto_promedio': None
+                "titulo": movie.title(),
+                "anio": year,
+                "voto_total": vote_count,
+                "voto_promedio": None
             }
         else:
             return {
-                'titulo': movie.title(),
-                'anio': year,
-                'voto_total': vote_count,
-                'voto_promedio': vote_average
+                "titulo": movie.title(),
+                "anio": year,
+                "voto_total": vote_count,
+                "voto_promedio": vote_average
             }
 
 
 # Función para obtener el actor
-@app.get("/get_actor/{actor}")
+@app.get(
+    "/get_actor/{actor}",
+    name="Obtener retorno y cantidad de películas de un actor",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def get_actor(actor: str):
     """
     Se ingresa el nombre de un actor que se encuentre dentro de un dataset debiendo devolver el éxito del mismo medido a través del retorno, además de la cantidad de películas que en las que ha participado y el promedio de retorno.
@@ -162,7 +213,12 @@ def get_actor(actor: str):
 
 
 # Función para obtener el éxito de un director y detalles de sus películas
-@app.get("/get_director/{director}")
+@app.get(
+    "/get_director/{director}",
+    name="Obtener éxito y películas del director",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
 def get_director(director: str):
     """
     Se ingresa el nombre de un director que se encuentre dentro de un dataset debiendo devolver el éxito del mismo medido a través del retorno.
@@ -177,7 +233,7 @@ def get_director(director: str):
 
     if director_id == None:
         return {
-            "director": f" {r_director} no existe",
+            "director": f"{r_director} no existe",
             "retorno_total_director": None,
             "peliculas": []
         }
