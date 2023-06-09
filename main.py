@@ -1,195 +1,219 @@
 # API
 
-import pandas as pd
 from fastapi import FastAPI
 
-
-# Cargamos el dataset de películas como un dataframe de pandas
-movies = pd.read_csv("data/movies.csv", index_col='id')
-
-# Convertimos estas columnas en listas para practicidad
-movies[['genres_id', 'actors_id', 'directors_id']] = movies[[
-    'genres_id', 'actors_id', 'directors_id']].apply(lambda x: x.apply(eval))
-
-# Cargamos los datasets como diccionarios para un fácil acceso
-genres = pd.read_csv("data/genres.csv", index_col='genre').to_dict(
-    orient='dict')['id']
-actors = pd.read_csv("data/actors.csv", index_col='actor').to_dict(
-    orient='dict')['id']
-directors = pd.read_csv("data/directors.csv", index_col='director').to_dict(
-    orient='dict')['id']
-
-# Creamos el diccionario de meses para la ruta get months
-months = {
-    1: 'enero',
-    2: 'febrero',
-    3: 'marzo',
-    4: 'abril',
-    5: 'mayo',
-    6: 'junio',
-    7: 'julio',
-    8: 'agosto',
-    9: 'septiembre',
-    10: 'octubre',
-    11: 'noviembre',
-    12: 'diciembre'
-}
+from data import months, movies, actors, directors, genres
 
 
 app = FastAPI()
 
 
+# Cuando entren a la API, podrán ver como usar la misma
 @app.get("/")
 def home():
-
-    return genres
+    return {"message": "Bienvenidos a la API de Películas"}
 
 
 # Función para obtener la cantidad de filmaciones en un mes específico
-@app.get("/mes/{month}")
+@app.get("/cantidad_filmaciones_mes/{month}")
 def films_per_month(month: str):
-    # Lógica para calcular la cantidad de películas estrenadas en el mes
+    """Se ingresa el mes y la función retorna la cantidad de películas que se etranaron ese mes históricamente"""
+
     month = month.lower()
-    num_month = None
 
-    # Obtener el número de mes correspondiente al nombre
-    for num, name_month in months.items():
-        if month == name_month:
-            num_month = num
-            break
+    # Buscar el número del mes en el diccionario, si devuelve None es porque no existe
+    num_month = months.get(month, None)
 
-    # Si no está el mes, devolvemos una respuesta pidiendo nuevamente el dato
-    if num_month is None:
-        return {"message": f"No existe el mes: '{month}', revise el dato envíado"}
+    if num_month == None:
+        return {"mes": f"{month} no existe", "cantidad": None}
 
     # Contar la cantidad de películas estrenadas en el mes
-    amount = len(movies[movies['release_month'] == num_month])
+    amount = len(movies[movies["release_month"] == num_month])
 
-    return {"message": f"{amount} películas fueron estrenadas en el mes de {month}"}
+    return {"mes": month, "cantidad": amount}
 
 
 # Función para obtener la cantidad de filmaciones en un día específico
-@app.get("/dia/{day}")
+@app.get("/cantidad_filmaciones_dia/{day}")
 def films_per_day(day: str):
-    # Lógica para calcular la cantidad de películas estrenadas en el día
-    day = day.lower().replace('é', 'e').replace('á', 'a')
+    """Se ingresa el dia y la funcion retorna la cantidad de peliculas que se estrebaron ese dia historicamente."""
+
+    day = day.lower().replace("é", "e").replace("á", "a")
 
     # Contar la cantidad de películas estrenadas en el mes
-    amount = len(movies[movies['release_day'] == day])
+    amount = len(movies[movies["release_day"] == day])
 
     if amount == 0:
-        return {"message": f"El día {day} no existe, revise el dato enviado."}
+        return {"dia": f"{day} no existe", "cantidad": None}
 
-    return {"message": f"{amount} películas fueron estrenadas el día {day}."}
+    return {"dia": day, "cantidad": amount}
 
 
-# Función para obtener el score de una filmación por su título o sus votos por títulos
-@app.get("/movies/{movie}/{info}")
-def title_score(movie: str, info: str):
-    # Lógica para obtener el título, año de estreno y score de la filmación
+# Función para obtener el score de una filmación por su título
+@app.get("/score_titulo/{movie}")
+def title_score(movie: str):
+    """Se ingresa el título de una filmación esperando como respuesta el título, el año de estreno y el score."""
+
     movie = movie.lower()
-    info = info.lower()
-
-    if info not in ['score', 'votos']:
-        return {"message": f'Se puede solicitar solamente el score y los votos'}
 
     # Filtrar el DataFrame por título de la película
-    filtered_movies = movies[movies['title'].str.lower() == movie]
+    filtered_movies = movies[movies["title"].str.lower() == movie]
 
     if filtered_movies.empty:
-        return {"message": f"No se encontró la película {movie}."}
+        return {
+            'titulo': f'No se encontró {movie}',
+            'anio': None,
+            'popularidad': None
+        }
 
     # Obtener los datos del DataFrame filtrado
     else:
-        title = filtered_movies['title'].iloc[0]
-        year = filtered_movies['release_year'].iloc[0]
-        popularity = filtered_movies['popularity'].iloc[0]
-        vote_count = filtered_movies['vote_count'].iloc[0]
-        vote_average = filtered_movies['vote_average'].iloc[0]
+        year = filtered_movies["release_year"].iloc[0].item()
+        popularity = filtered_movies["popularity"].iloc[0].item()
 
-        if info == 'score':
+        return {
+            'titulo': movie.title(),
+            'anio': year,
+            'popularidad': popularity
+        }
+
+
+# Función para obtener los votos de una filmación por su título
+@app.get("/votos_titulo/{movie}")
+def title_votes(movie: str):
+    """Se ingresa el título de una filmación esperando como respuesta el título, la cantidad de votos y el valor promedio de las votaciones."""
+
+    movie = movie.lower()
+
+    # Filtrar el DataFrame por título de la película
+    filtered_movies = movies[movies["title"].str.lower() == movie]
+
+    if filtered_movies.empty:
+        return {
+            'titulo': f'No se encontró {movie}',
+            'anio': None,
+            'voto_total': None,
+            'voto_promedio': None
+        }
+
+    else:
+        year = filtered_movies["release_year"].iloc[0].item()
+        vote_count = filtered_movies["vote_count"].iloc[0].item()
+        vote_average = filtered_movies["vote_average"].iloc[0].item()
+
+        if vote_count < 2000:
             return {
-                "message": f"La película {title} fue estrenada en el año {year}. La misma cuenta con una popularidad de {popularity}."
+                'titulo': movie.title(),
+                'anio': year,
+                'voto_total': vote_count,
+                'voto_promedio': None
             }
-        elif info == 'votos':
-            if vote_count < 2000:
-                return {
-                    "message": f"La película {title} fue estrenada en el año {year}, pero no cuenta con las suficientes valoraciones para poder dar un promedio."
-                }
-            else:
-                return {
-                    "message": f"La película {title} fue estrenada en el año {year}. La misma cuenta con {vote_count} votos que dan un promedio de {vote_average} de 10."
-                }
+        else:
+            return {
+                'titulo': movie.title(),
+                'anio': year,
+                'voto_total': vote_count,
+                'voto_promedio': vote_average
+            }
 
 
 # Función para obtener el actor
-@app.get("/actors/{actor}")
+@app.get("/get_actor/{actor}")
 def get_actor(actor: str):
-    # Lógica para obtener el éxito del director y detalles de todas sus películas
+    """
+    Se ingresa el nombre de un actor que se encuentre dentro de un dataset debiendo devolver el éxito del mismo medido a través del retorno, además de la cantidad de películas que en las que ha participado y el promedio de retorno.
+    """
+
     actor = actor.lower()
     r_actor = actor.title()
-    # Buscar el id del actor en el diccionario, si da un key error es porque no existe
-    try:
-        actor_id = actors[actor]
-    except KeyError:
-        return {"message": f"No se encontró el actor {r_actor} revise el dato"}
+    # Buscar el id del actor en el diccionario, si devuelve un None es porque no existe
+    actor_id = actors.get(actor, None)
+
+    if actor_id == None:
+        return {
+            "actor": f"{r_actor} no existe",
+            "cantidad_filmaciones": None,
+            "retorno_total": None,
+            "retorno_promedio": None
+        }
 
     # Filtramos las películas en las que ha participado el actor
-    actor_films = movies[movies['actors_id'].apply(
+    actor_films = movies[movies["actors_id"].apply(
         lambda ids: actor_id in ids)]
 
     if actor_films.empty:
-        return {"message": f"No se encontraron filmaciones para el actor {r_actor}"}
+        return {
+            "actor": r_actor,
+            "cantidad_filmaciones": 0,
+            "retorno_total": 0,
+            "retorno_promedio": 0
+        }
 
     # Se calcula la cantidad de filmaciones y el retorno promedio se calcula solo de las filas en que el retorno es diferente a 0
-    films_return = actor_films[actor_films['return'] != 0]
-    avg_return = round(films_return['return'].mean(), 2)
+    films_return = actor_films[actor_films["return"] != 0]
+    avg_return = round(films_return["return"].mean(), 2)
 
-    return {"message": f"El actor {r_actor} ha participado de {len(actor_films)} cantidad de filmaciones, el mismo ha conseguido un retorno promedio de {avg_return} por filmación"}
+    return {
+        "actor": r_actor,
+        "cantidad_filmaciones": len(actor_films),
+        "retorno_total": actor_films["return"].sum(),
+        "retorno_promedio": avg_return
+    }
 
 
 # Función para obtener el éxito de un director y detalles de sus películas
-@app.get("/directors/{director}")
+@app.get("/get_director/{director}")
 def get_director(director: str):
+    """
+    Se ingresa el nombre de un director que se encuentre dentro de un dataset debiendo devolver el éxito del mismo medido a través del retorno.
+    Devuelve el nombre de cada película con la fecha de lanzamiento, retorno individual, costo y ganancia de la misma.
+    """
+
     director = director.lower()
     r_director = director.title()
-    # Buscamos el id del actor en el diccionario, si da un key error es porque no existe
-    try:
-        director_id = directors[director]
-    except KeyError:
-        return {"message": f"No se encontró el director {r_director} revise el dato"}
+
+    # Buscamos el id del director en el diccionario, si devuelve None es porque no existe
+    director_id = directors.get(director, None)
+
+    if director_id == None:
+        return {
+            "director": f" {r_director} no existe",
+            "retorno_total_director": None,
+            "peliculas": []
+        }
+
     # Buscamos el director en el DataFrame de películas
-    director_films = movies[movies['actors_id'].apply(
+    director_films = movies[movies["directors_id"].apply(
         lambda ids: director_id in ids)]
 
     if director_films.empty:
-        return {"message": f"No se encontraron filmaciones para el director {r_director}"}
+        return {
+            "director": r_director,
+            "retorno_total_director": 0,
+            "peliculas": []
+        }
 
     # Calculamos el éxito del director y los detalles de sus películas
     peliculas = []
     for _, row in director_films.iterrows():
-        titulo = row['title']
-        fecha_lanzamiento = row['release_date']
-        costo = row['budget']
-        ganancia = row['revenue']
-        retorno = round(row['return'], 2)
-        peliculas.append((titulo, fecha_lanzamiento, costo, ganancia, retorno))
-
-    # Sacamos el retorno en promedio de director
-    films_return = director_films[director_films['return'] != 0]
-    avg_return = round(films_return['return'].mean(), 2)
+        title = row["title"]
+        release_date = row["release_year"]
+        budget = row["budget"]
+        revenue = row["revenue"]
+        film_return = round(row["return"], 2)
+        peliculas.append((title, release_date, budget, revenue, film_return))
 
     return {
-        "message": f'{r_director} ha dirigido {len(director_films)} películas',
-        "éxito": f'{avg_return} es el promedio de retorno de sus películas',
+        "director": r_director,
+        "retorno_total_director": director_films["return"].sum(),
         "peliculas": [
             {
-                "titulo": titulo,
-                "fecha_lanzamiento": fecha_lanzamiento,
-                "costo": costo,
-                "ganancia": ganancia,
-                "retorno": retorno
+                "titulo": title,
+                "anio": release_date,
+                "budget_pelicula": budget,
+                "revenue_pelicula": revenue,
+                "retorno_pelicula": film_return
             }
-            for titulo, fecha_lanzamiento, costo, ganancia, retorno in peliculas
+            for title, release_date, budget, revenue, film_return in peliculas
         ]
     }
