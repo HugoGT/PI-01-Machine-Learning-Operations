@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, status
 
-from data import months, movies, actors, directors, genres
+from data import months, movies, actors, directors
 
 
 app = FastAPI(
@@ -98,7 +98,7 @@ def title_score(movie: str):
     movie = movie.lower()
 
     # Filtrar el DataFrame por título de la película
-    filtered_movies = movies[movies["title"].str.lower() == movie]
+    filtered_movies = movies[movies["title"] == movie]
 
     if filtered_movies.empty:
         return {
@@ -132,7 +132,7 @@ def title_votes(movie: str):
     movie = movie.lower()
 
     # Filtrar el DataFrame por título de la película
-    filtered_movies = movies[movies["title"].str.lower() == movie]
+    filtered_movies = movies[movies["title"] == movie]
 
     if filtered_movies.empty:
         return {
