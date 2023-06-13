@@ -311,3 +311,9 @@ def recomendation(title: str):
         recomendation_list.append((titles["title"].iloc[i]).title())
 
     return {"lista recomendada": sorted(recomendation_list)}
+
+
+# Función para que no se apague el server de Render
+@app.api_route("/healthz", methods=["GET"])
+def mi_funcion():
+    return status.HTTP_200_OK
