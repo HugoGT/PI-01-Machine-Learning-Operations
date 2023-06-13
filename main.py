@@ -314,6 +314,6 @@ def recomendation(title: str):
 
 
 # Función para que no se apague el server de Render
-@app.api_route("/healthz", methods=["GET"])
-def mi_funcion():
+@app.get("/healthz", include_in_schema=False)
+def health_check():
     return status.HTTP_200_OK
