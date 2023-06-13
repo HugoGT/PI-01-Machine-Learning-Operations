@@ -1,8 +1,9 @@
 # API
 
 from fastapi import FastAPI, status
+from sklearn.metrics.pairwise import cosine_similarity
 
-from data import months, movies, actors, directors
+from data import actors, directors, months, movies, titles, weight_matrix
 
 
 app = FastAPI(
@@ -273,3 +274,40 @@ def get_director(director: str):
             for title, release_date, budget, revenue, film_return in peliculas
         ]
     }
+
+
+# Función para recomendar una lista de películas dada una película
+@app.get(
+    "/recomendacion/{title}",
+    name="Obtener recomendación de películas",
+    tags=["Películas"],
+    status_code=status.HTTP_200_OK
+)
+def recomendation(title: str):
+    """Ingresas un nombre de pelicula y te recomienda las similares en una lista"""
+    title = title.lower()
+    # Buscamos la película en el df de películas
+    movie_id = movies.loc[movies["title"] == title].index
+
+    # Si la a película no existe en el DataFrame se devuelve nulo
+    if movie_id.empty:
+        return {"lista recomendada": "No se encontró la película"}
+
+    # Intentamos hacer un reshape para poder sacar la correlación con cosine_sim, si no se puede es porque la película no tiene suficente información para sacar alguna correlación
+    try:
+        movie = weight_matrix.loc[movie_id].iloc[0].to_numpy().reshape(1, -1)
+    except KeyError:
+        return {"lista recomendada": "No hay suficiente información de esta película para hacer alguna recomendación"}
+
+    # Calculamos la similitud de coseno entre la película ingresada por el usuario y todas las demás películas
+    cosine_sim = cosine_similarity(movie, weight_matrix)
+
+    # Obtenemos los 5 índices de las películas más similares excluyendo la primera que es la que ingresa el usuario
+    similar_movies = cosine_sim.argsort()[0][::-1][1:6]
+
+    recomendation_list = []
+    # Obtenemos los títulos de las películas similares y los añadimos a la lista de recomendación
+    for i in similar_movies:
+        recomendation_list.append((titles["title"].iloc[i]).title())
+
+    return {"lista recomendada": sorted(recomendation_list)}
