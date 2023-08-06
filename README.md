@@ -1,4 +1,4 @@
-# <h1 align=center> **PROYECTO INDIVIDUAL N°1 CONSTRUYENDO UNA API** </h1>
+# <h1 align=center> **PROYECTO INDIVIDUAL N°1 CONSTRUYENDO UNA API DE RECOMENDACIÓN** </h1>
 
 <div align=center>
 <img src="https://cosasdedevs.com/media/sections/images/fastapi.png" width="360px">
@@ -6,7 +6,7 @@
 
 _Autor: Hugo Gómez Tinoco_
 
-Bienvenido! En este proyecto veremos como desplegar una API de películas para que una persona en cualquier parte del mundo pueda accedar a la misma. También se podrán ver los procesos de ETL(Limpieza de datos) y también un EDA(Análisis exploratorio de datos) para poder crear un modelo simple de recomendación de películas.
+Bienvenido! En este proyecto crearemos un sistema de machine learning para recomendar películas, además de poder buscar información de actores y directores, luego desplegaremos la API para que una persona en cualquier parte del mundo pueda accedar a la misma. También se podrán ver los procesos de ETL(Limpieza de datos) y también un EDA(Análisis exploratorio de datos) para poder crear un modelo simple de recomendación de películas.
 
 ## **Índice**
 
